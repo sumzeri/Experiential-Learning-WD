@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Editor</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    background: #eef2f7;
+    display: flex;
+    flex-direction: column;
+}
+
+/* HEADER */
+header {
+    background: #111827;
+    color: white;
+    padding: 16px 20px;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+/* CONTAINER */
+.container {
+    flex: 1;
+    width: 92%;
+    max-width: 1000px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+/* TOOLBAR */
+.toolbar {
+    position: sticky;
+    top: 0;
+    background: #f9fafb;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    z-index: 10;
+}
+
+.toolbar button {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+/* HOVER + ACTIVE */
+.toolbar button:hover {
+    background: #f3f4f6;
+    transform: translateY(-1px);
+}
+
+.toolbar button.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+/* EDITOR */
+.editor {
+    flex: 1;
+    padding: 18px;
+    min-height: 400px;
+    outline: none;
+    font-size: 15px;
+    color: #111827;
+    line-height: 1.7;
+    transition: 0.2s;
+}
+
+.editor:focus {
+    background: #fcfcfd;
+}
+
+/* STATUS BAR */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #6b7280;
+    border-top: 1px solid #e5e7eb;
+    background: #fafafa;
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+    .toolbar button {
+        flex: 1 1 45%;
+        font-size: 13px;
+    }
+
+    .editor {
+        min-height: 280px;
+        padding: 12px;
+    }
+
+    .status-bar {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>Text Editor</header>
+
+<div class="container">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <button onclick="format('bold', this)">Bold</button>
+        <button onclick="format('italic', this)">Italic</button>
+        <button onclick="format('underline', this)">Underline</button>
+        <button onclick="format('insertUnorderedList', this)">List</button>
+        <button onclick="format('justifyLeft', this)">Left</button>
+        <button onclick="format('justifyCenter', this)">Center</button>
+        <button onclick="format('justifyRight', this)">Right</button>
+        <button onclick="clearEditor()">Clear</button>
+    </div>
+
+    <!-- EDITOR -->
+    <div id="editor" class="editor" contenteditable="true" oninput="updateCount()">
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+        <span id="words">Words: 0</span>
+        <span id="chars">Characters: 0</span>
+    </div>
+
+</div>
+
+<script>
+function format(command, btn) {
+    document.execCommand(command, false, null);
+
+    if(btn){
+        btn.classList.toggle("active");
+    }
+}
+
+function clearEditor() {
+    document.getElementById("editor").innerHTML = "";
+    updateCount();
+}
+
+/* WORD + CHARACTER COUNT */
+function updateCount() {
+    let text = document.getElementById("editor").innerText;
+
+    let words = text.trim().split(/\s+/).filter(word => word.length > 0);
+    let chars = text.length;
+
+    document.getElementById("words").innerText = "Words: " + (words[0] === "" ? 0 : words.length);
+    document.getElementById("chars").innerText = "Characters: " + chars;
+}
+</script>
+
+</body>
+</html>

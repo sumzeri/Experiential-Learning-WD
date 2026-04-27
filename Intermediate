@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text Editor</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Syne:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #181820;
+      --ink-soft:   #4a4a58;
+      --paper:      #f9f7f3;
+      --cream:      #f0ece3;
+      --gold:       #c9a84c;
+      --gold-lt:    #f0d98a;
+      --glass-bg:   rgba(255,255,255,0.76);
+      --glass-bd:   rgba(255,255,255,0.55);
+      --r: 14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--paper);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      background: var(--ink);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    header h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .badge-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      border: 1px solid rgba(201,168,76,0.4);
+      background: rgba(201,168,76,0.08);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    main { flex: 1; padding: 36px 16px 40px; }
+
+    /* ─── ALL HIDDEN INPUTS ─── */
+    .tool-check, .align-radio, .fs-radio, .lh-radio, .theme-radio { display: none; }
+
+    /* ─── OUTER SHELL keeps inputs as CSS siblings of toolbar + editor ─── */
+    .shell { position: relative; }
+
+    /* ─── EDITOR CARD ─── */
+    .editor-card {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.09);
+      border-radius: var(--r);
+      box-shadow: 0 2px 24px rgba(0,0,0,0.07);
+      overflow: visible;
+    }
+
+    /* ─── FLOATING TOOLBAR ─── */
+    .toolbar {
+      position: absolute;
+      top: -62px;
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      z-index: 30;
+
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 7px 12px;
+
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      border: 1px solid var(--glass-bd);
+      border-radius: 50px;
+      box-shadow: 0 8px 32px rgba(24,24,32,0.18), 0 1.5px 4px rgba(24,24,32,0.10);
+
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.28s cubic-bezier(.34,1.56,.64,1);
+      white-space: nowrap;
+    }
+
+    /* Show on hover of card or focus within */
+    .editor-card:hover .toolbar,
+    .editor-card:focus-within .toolbar,
+    .toolbar:hover {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ─── DIVIDER ─── */
+    .t-div {
+      width: 1px;
+      height: 20px;
+      background: rgba(0,0,0,0.11);
+      margin: 0 6px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ─── ICON BUTTONS ─── */
+    .btn-t {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--ink-soft);
+      background: transparent;
+      border: none;
+      transition: background 0.14s, color 0.14s, transform 0.12s;
+      user-select: none;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .btn-t:hover {
+      background: rgba(0,0,0,0.07);
+      color: var(--ink);
+      transform: scale(1.1);
+    }
+
+    .btn-t:active { transform: scale(0.94); }
+
+    /* Tooltip */
+    .btn-t::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.14s 0.45s;
+    }
+
+    .btn-t:hover::after { opacity: 1; }
+
+    /* Font size pill row */
+    .fs-group {
+      display: flex;
+      gap: 0;
+      background: rgba(0,0,0,0.05);
+      border-radius: 20px;
+      padding: 3px;
+    }
+
+    .fs-group .btn-t {
+      width: auto;
+      height: 26px;
+      padding: 0 9px;
+      font-size: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      border-radius: 20px;
+    }
+
+    /* Theme swatches */
+    .swatch {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s, border-color 0.12s;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .swatch:hover { transform: scale(1.15); }
+    .swatch::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.14s 0.45s;
+    }
+    .swatch:hover::after { opacity: 1; }
+
+    /* ─── ACTIVE STATES ─── */
+    #chk-bold:checked      ~ .editor-card .toolbar label[for="chk-bold"],
+    #chk-italic:checked    ~ .editor-card .toolbar label[for="chk-italic"],
+    #chk-underline:checked ~ .editor-card .toolbar label[for="chk-underline"],
+    #chk-strike:checked    ~ .editor-card .toolbar label[for="chk-strike"] {
+      background: var(--ink); color: var(--gold-lt);
+    }
+
+    #align-left:checked    ~ .editor-card .toolbar label[for="align-left"],
+    #align-center:checked  ~ .editor-card .toolbar label[for="align-center"],
+    #align-right:checked   ~ .editor-card .toolbar label[for="align-right"],
+    #align-just:checked    ~ .editor-card .toolbar label[for="align-just"] {
+      background: var(--ink); color: var(--gold-lt);
+    }
+
+    #fs-sm:checked ~ .editor-card .toolbar label[for="fs-sm"],
+    #fs-md:checked ~ .editor-card .toolbar label[for="fs-md"],
+    #fs-lg:checked ~ .editor-card .toolbar label[for="fs-lg"],
+    #fs-xl:checked ~ .editor-card .toolbar label[for="fs-xl"] {
+      background: var(--ink); color: var(--gold-lt);
+    }
+
+    #lh-tight:checked  ~ .editor-card .toolbar label[for="lh-tight"],
+    #lh-normal:checked ~ .editor-card .toolbar label[for="lh-normal"],
+    #lh-loose:checked  ~ .editor-card .toolbar label[for="lh-loose"] {
+      background: var(--ink); color: var(--gold-lt);
+    }
+
+    #theme-sepia:checked ~ .editor-card .toolbar label[for="theme-sepia"],
+    #theme-dark:checked  ~ .editor-card .toolbar label[for="theme-dark"],
+    #theme-blue:checked  ~ .editor-card .toolbar label[for="theme-blue"],
+    #theme-light:checked ~ .editor-card .toolbar label[for="theme-light"] {
+      border-color: var(--gold) !important;
+      transform: scale(1.15);
+    }
+
+    /* ─── APPLY TO EDITOR AREA ─── */
+    #chk-bold:checked      ~ .editor-card .editor-area { font-weight: 700; }
+    #chk-italic:checked    ~ .editor-card .editor-area { font-style: italic; }
+    #chk-underline:checked ~ .editor-card .editor-area { text-decoration: underline; }
+    #chk-strike:checked    ~ .editor-card .editor-area { text-decoration: line-through; }
+    #chk-underline:checked ~ #chk-strike:checked ~ .editor-card .editor-area { text-decoration: underline line-through; }
+
+    #fs-sm:checked ~ .editor-card .editor-area { font-size: 13px; }
+    #fs-md:checked ~ .editor-card .editor-area { font-size: 16px; }
+    #fs-lg:checked ~ .editor-card .editor-area { font-size: 20px; }
+    #fs-xl:checked ~ .editor-card .editor-area { font-size: 28px; }
+
+    #align-left:checked   ~ .editor-card .editor-area { text-align: left; }
+    #align-center:checked ~ .editor-card .editor-area { text-align: center; }
+    #align-right:checked  ~ .editor-card .editor-area { text-align: right; }
+    #align-just:checked   ~ .editor-card .editor-area { text-align: justify; }
+
+    #lh-tight:checked  ~ .editor-card .editor-area { line-height: 1.4; }
+    #lh-normal:checked ~ .editor-card .editor-area { line-height: 1.85; }
+    #lh-loose:checked  ~ .editor-card .editor-area { line-height: 2.6; }
+
+    #theme-sepia:checked ~ .editor-card .editor-area { background: #f8f0dc; color: #3d2b1a; }
+    #theme-dark:checked  ~ .editor-card .editor-area { background: #181820; color: #dedad3; }
+    #theme-blue:checked  ~ .editor-card .editor-area { background: #eaf2fb; color: #0d2b4e; }
+    #theme-light:checked ~ .editor-card .editor-area { background: #ffffff; color: var(--ink); }
+
+    /* ─── EDITOR AREA ─── */
+    .editor-area {
+      min-height: 460px;
+      padding: 34px 38px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 16px;
+      line-height: 1.85;
+      color: var(--ink);
+      outline: none;
+      border-radius: 0 0 var(--r) var(--r);
+      transition: background 0.32s, color 0.32s, font-size 0.2s, line-height 0.2s;
+    }
+
+    .editor-area:empty::before {
+      content: "Start writing… hover anywhere above to reveal the toolbar.";
+      color: #b5b0a7;
+      font-style: italic;
+      pointer-events: none;
+    }
+
+    /* ─── STATUS BAR ─── */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 22px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      background: var(--cream);
+      border-radius: 0 0 var(--r) var(--r);
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      color: var(--ink-soft);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-bar span { display: flex; align-items: center; gap: 5px; }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: inline-block;
+      animation: blink 2.4s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ─── HINT PILLS ─── */
+    .hint-strip {
+      margin-top: 18px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hint-pill {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      color: var(--ink-soft);
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 20px;
+      padding: 5px 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hint-pill i { color: var(--gold); font-size: 12px; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 600px) {
+      .toolbar { top: -54px; padding: 5px 8px; gap: 1px; }
+      .btn-t { width: 30px; height: 30px; font-size: 13px; }
+      .editor-area { padding: 18px; min-height: 300px; }
+      header h1 { font-size: 20px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <h1>Text Editor</h1>
+    <span class="badge-tag">Intermediate</span>
+  </header>
+
+  <main>
+    <div class="container" style="max-width:840px;">
+
+      <!-- ══════ ALL HIDDEN INPUTS (siblings to .editor-card via .shell) ══════ -->
+      <div class="shell" style="margin-top:74px;">
+
+        <!-- Format -->
+        <input type="checkbox" class="tool-check" id="chk-bold" />
+        <input type="checkbox" class="tool-check" id="chk-italic" />
+        <input type="checkbox" class="tool-check" id="chk-underline" />
+        <input type="checkbox" class="tool-check" id="chk-strike" />
+
+        <!-- Alignment -->
+        <input type="radio" class="align-radio" name="align" id="align-left" checked />
+        <input type="radio" class="align-radio" name="align" id="align-center" />
+        <input type="radio" class="align-radio" name="align" id="align-right" />
+        <input type="radio" class="align-radio" name="align" id="align-just" />
+
+        <!-- Font size -->
+        <input type="radio" class="fs-radio" name="fs" id="fs-sm" />
+        <input type="radio" class="fs-radio" name="fs" id="fs-md" checked />
+        <input type="radio" class="fs-radio" name="fs" id="fs-lg" />
+        <input type="radio" class="fs-radio" name="fs" id="fs-xl" />
+
+        <!-- Line height -->
+        <input type="radio" class="lh-radio" name="lh" id="lh-tight" />
+        <input type="radio" class="lh-radio" name="lh" id="lh-normal" checked />
+        <input type="radio" class="lh-radio" name="lh" id="lh-loose" />
+
+        <!-- Theme -->
+        <input type="radio" class="theme-radio" name="theme" id="theme-light" checked />
+        <input type="radio" class="theme-radio" name="theme" id="theme-sepia" />
+        <input type="radio" class="theme-radio" name="theme" id="theme-dark" />
+        <input type="radio" class="theme-radio" name="theme" id="theme-blue" />
+
+        <!-- ══════ EDITOR CARD ══════ -->
+        <article class="editor-card">
+
+          <!-- FLOATING TOOLBAR -->
+          <nav class="toolbar" aria-label="Formatting toolbar">
+
+            <!-- FORMAT -->
+            <label class="btn-t" for="chk-bold"      data-tip="Bold"><i class="bi bi-type-bold"></i></label>
+            <label class="btn-t" for="chk-italic"    data-tip="Italic"><i class="bi bi-type-italic"></i></label>
+            <label class="btn-t" for="chk-underline" data-tip="Underline"><i class="bi bi-type-underline"></i></label>
+            <label class="btn-t" for="chk-strike"    data-tip="Strikethrough"><i class="bi bi-type-strikethrough"></i></label>
+
+            <div class="t-div"></div>
+
+            <!-- FONT SIZE -->
+            <div class="fs-group">
+              <label class="btn-t" for="fs-sm" data-tip="Small">S</label>
+              <label class="btn-t" for="fs-md" data-tip="Normal">M</label>
+              <label class="btn-t" for="fs-lg" data-tip="Large">L</label>
+              <label class="btn-t" for="fs-xl" data-tip="X-Large">XL</label>
+            </div>
+
+            <div class="t-div"></div>
+
+            <!-- ALIGNMENT -->
+            <label class="btn-t" for="align-left"   data-tip="Left"><i class="bi bi-text-left"></i></label>
+            <label class="btn-t" for="align-center" data-tip="Center"><i class="bi bi-text-center"></i></label>
+            <label class="btn-t" for="align-right"  data-tip="Right"><i class="bi bi-text-right"></i></label>
+            <label class="btn-t" for="align-just"   data-tip="Justify"><i class="bi bi-justify"></i></label>
+
+            <div class="t-div"></div>
+
+            <!-- LINE HEIGHT -->
+            <label class="btn-t" for="lh-tight"  data-tip="Compact spacing"><i class="bi bi-arrows-collapse-vertical"></i></label>
+            <label class="btn-t" for="lh-normal" data-tip="Normal spacing"><i class="bi bi-distribute-vertical"></i></label>
+            <label class="btn-t" for="lh-loose"  data-tip="Loose spacing"><i class="bi bi-arrows-expand-vertical"></i></label>
+
+            <div class="t-div"></div>
+
+            <!-- THEME SWATCHES -->
+            <label class="swatch" for="theme-light" data-tip="Light"
+              style="background:#ffffff; border-color:#ccc;"></label>
+            <label class="swatch" for="theme-sepia" data-tip="Sepia"
+              style="background:#f8f0dc; border-color:#c9a874;"></label>
+            <label class="swatch" for="theme-dark"  data-tip="Dark"
+              style="background:#181820; border-color:#555;"></label>
+            <label class="swatch" for="theme-blue"  data-tip="Focus"
+              style="background:#deeeff; border-color:#7aacd6;"></label>
+
+          </nav>
+
+          <!-- EDITOR -->
+          <section
+            class="editor-area"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            aria-label="Text editor content area"
+            spellcheck="true"
+          ></section>
+
+          <!-- STATUS BAR -->
+          <footer class="status-bar">
+            <span><span class="dot"></span> Editing mode active</span>
+            <span><i class="bi bi-mouse2"></i> Hover editor to reveal toolbar</span>
+            <span><i class="bi bi-spellcheck"></i> Spellcheck on</span>
+          </footer>
+
+        </article>
+
+        <!-- HINT PILLS -->
+        <div class="hint-strip">
+          <div class="hint-pill"><i class="bi bi-magic"></i> Hover to reveal floating toolbar</div>
+          <div class="hint-pill"><i class="bi bi-fonts"></i> S / M / L / XL sizes</div>
+          <div class="hint-pill"><i class="bi bi-palette2"></i> 4 reading themes</div>
+          <div class="hint-pill"><i class="bi bi-text-indent-left"></i> 4 alignments</div>
+          <div class="hint-pill"><i class="bi bi-arrows-expand-vertical"></i> 3 line spacings</div>
+        </div>
+
+      </div><!-- /.shell -->
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

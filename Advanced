@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Text Editor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Syne:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #181820;
+      --ink-soft: #4a4a58;
+      --paper: #f9f7f3;
+      --cream: #f0ece3;
+      --gold: #c9a84c;
+      --gold-lt: #f0d98a;
+      --glass-bg: rgba(255,255,255,0.82);
+      --glass-bd: rgba(255,255,255,0.55);
+      --r: 14px;
+      --accent: #3d5a80;
+      --danger: #c0392b;
+      --success: #2d6a4f;
+    }
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--paper);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    /* ── HEADER ── */
+    header {
+      background: var(--ink);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    header h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--gold);
+    }
+
+    .badge-tag {
+      font-size: 10px;
+      color: var(--gold);
+      border: 1px solid rgba(201,168,76,0.4);
+      background: rgba(201,168,76,0.08);
+      border-radius: 20px;
+      padding: 3px 10px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── PROGRESS in header ── */
+    .header-progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
+    }
+
+    progress {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 130px;
+      height: 6px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.12);
+      overflow: hidden;
+    }
+
+    progress::-webkit-progress-bar { background: rgba(255,255,255,0.12); border-radius: 10px; }
+    progress::-webkit-progress-value { background: linear-gradient(90deg, var(--gold), var(--gold-lt)); border-radius: 10px; }
+    progress::-moz-progress-bar { background: linear-gradient(90deg, var(--gold), var(--gold-lt)); border-radius: 10px; }
+
+    /* ── MAIN LAYOUT ── */
+    main { flex: 1; padding: 36px 16px 60px; }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    /* ── HIDDEN CHECKBOXES (pure CSS interaction) ── */
+    .tool-check { display: none; }
+
+    /* ── SETTINGS PANEL using <details> ── */
+    .settings-panel {
+      margin-bottom: 20px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.09);
+      border-radius: var(--r);
+      overflow: hidden;
+      box-shadow: 0 1px 10px rgba(0,0,0,0.05);
+    }
+
+    .settings-panel summary {
+      list-style: none;
+      padding: 13px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      background: var(--cream);
+      border-bottom: 1px solid transparent;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .settings-panel summary::-webkit-details-marker { display: none; }
+
+    .settings-panel[open] summary {
+      border-bottom-color: rgba(0,0,0,0.07);
+      background: #ebe6dc;
+    }
+
+    .settings-panel summary .chevron {
+      margin-left: auto;
+      transition: transform 0.25s ease;
+    }
+
+    .settings-panel[open] summary .chevron { transform: rotate(180deg); }
+
+    .settings-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .setting-group { display: flex; flex-direction: column; gap: 7px; min-width: 160px; }
+    .setting-group label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* Range input */
+    input[type="range"] {
+      accent-color: var(--gold);
+      width: 100%;
+      cursor: pointer;
+    }
+
+    /* Color input */
+    input[type="color"] {
+      width: 100%;
+      height: 30px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 2px 4px;
+      background: #fff;
+    }
+
+    /* Select */
+    select {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      padding: 6px 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a4a58' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+      width: 100%;
+    }
+
+    select:focus { border-color: var(--gold); }
+
+    /* ── EDITOR SHELL ── */
+    .shell { position: relative; margin-top: 0; }
+
+    .editor-card {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.09);
+      border-radius: var(--r);
+      box-shadow: 0 2px 24px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 10px 14px;
+      background: var(--cream);
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+
+    .btn-t {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--ink-soft);
+      transition: 0.18s;
+      font-size: 15px;
+      border: none;
+      background: transparent;
+    }
+
+    .btn-t:hover { background: rgba(0,0,0,0.08); color: var(--ink); transform: scale(1.1); }
+
+    .t-div { width: 1px; height: 22px; background: rgba(0,0,0,0.11); margin: 0 3px; }
+
+    /* Datalist search bar */
+    .search-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    input[type="search"] {
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      padding: 5px 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 20px;
+      background: #fff;
+      outline: none;
+      width: 160px;
+      transition: border-color 0.2s, width 0.3s;
+    }
+
+    input[type="search"]:focus { border-color: var(--gold); width: 200px; }
+
+    /* ── EDITOR AREA ── */
+    .editor-area {
+      min-height: 420px;
+      padding: 34px 40px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      line-height: 1.85;
+      outline: none;
+      color: var(--ink);
+      transition: font-size 0.2s;
+    }
+
+    .editor-area:empty::before {
+      content: "Start writing your masterpiece…";
+      color: #c0bbB3;
+      font-style: italic;
+    }
+
+    /* ── METER row ── */
+    .meter-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      background: #fff;
+      border-top: 1px solid rgba(0,0,0,0.05);
+      font-size: 12px;
+      color: var(--ink-soft);
+      flex-wrap: wrap;
+    }
+
+    meter {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 90px;
+      height: 7px;
+      border: none;
+      border-radius: 10px;
+      background: #e8e4dc;
+      overflow: hidden;
+    }
+
+    meter::-webkit-meter-bar { background: #e8e4dc; border-radius: 10px; border: none; }
+    meter::-webkit-meter-optimum-value { background: linear-gradient(90deg, #2d6a4f, #52b788); border-radius: 10px; }
+    meter::-webkit-meter-suboptimum-value { background: linear-gradient(90deg, #e9c46a, #f4a261); border-radius: 10px; }
+    meter::-webkit-meter-even-less-good-value { background: linear-gradient(90deg, #e63946, #c1121f); border-radius: 10px; }
+    meter::-moz-meter-bar { background: #52b788; border-radius: 10px; }
+
+    .meter-label { white-space: nowrap; }
+
+    /* ── STATUS BAR ── */
+    footer.status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background: var(--cream);
+      border-top: 1px solid rgba(0,0,0,0.06);
+      font-size: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .dot.green { background: #52b788; }
+
+    /* ── DIALOG (modal) ── */
+    dialog {
+      border: none;
+      border-radius: var(--r);
+      padding: 0;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+      max-width: 400px;
+      width: 90%;
+      font-family: 'Syne', sans-serif;
+      animation: dialogIn 0.25s ease;
+    }
+
+    @keyframes dialogIn {
+      from { opacity: 0; transform: scale(0.94) translateY(-10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    dialog::backdrop {
+      background: rgba(24,24,32,0.45);
+      backdrop-filter: blur(4px);
+    }
+
+    .dialog-header {
+      background: var(--ink);
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dialog-header h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      color: var(--gold);
+    }
+
+    .dialog-body { padding: 22px; }
+    .dialog-body p { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin-bottom: 16px; }
+
+    .dialog-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .dialog-field label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    input[type="text"], input[type="number"], textarea {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      padding: 8px 12px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+      border-color: var(--gold);
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    .dialog-footer {
+      padding: 14px 22px;
+      border-top: 1px solid rgba(0,0,0,0.07);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn-primary, .btn-ghost {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      transition: 0.18s;
+    }
+
+    .btn-primary { background: var(--ink); color: var(--gold); }
+    .btn-primary:hover { background: #2a2a35; }
+    .btn-ghost { background: transparent; border: 1px solid rgba(0,0,0,0.12); color: var(--ink-soft); }
+    .btn-ghost:hover { background: var(--cream); }
+
+    /* ── TOOLTIP using <abbr> ── */
+    abbr[title] {
+      text-decoration: none;
+      cursor: help;
+      position: relative;
+      border-bottom: 1px dashed var(--gold);
+    }
+
+    /* ── BOTTOM PANELS using <details> ── */
+    .bottom-details {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .info-panel {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: var(--r);
+      overflow: hidden;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+    }
+
+    .info-panel summary {
+      list-style: none;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      background: var(--cream);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+
+    .info-panel summary::-webkit-details-marker { display: none; }
+    .info-panel[open] summary { background: #ebe6dc; }
+    .info-panel summary .chevron { margin-left: auto; transition: transform 0.25s; font-size: 10px; }
+    .info-panel[open] summary .chevron { transform: rotate(180deg); }
+
+    .info-panel-body { padding: 14px 16px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.75; }
+
+    /* Fieldset inside dialog */
+    fieldset {
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+    }
+
+    legend {
+      font-size: 11px;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0 6px;
+    }
+
+    .radio-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    input[type="radio"] { accent-color: var(--gold); cursor: pointer; }
+    input[type="checkbox"][class!="tool-check"] { accent-color: var(--gold); cursor: pointer; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .editor-area { padding: 18px; min-height: 300px; }
+      header h1 { font-size: 20px; }
+      .bottom-details { grid-template-columns: 1fr; }
+      .search-wrap { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ══════════════════════════════════════════════
+     HEADER with <progress> element
+══════════════════════════════════════════════ -->
+<header>
+  <div class="header-left">
+    <h1>Text Editor</h1>
+    <span class="badge-tag">Advanced</span>
+  </div>
+  <div class="header-progress">
+    <span>Session</span>
+    <progress value="62" max="100" title="Session usage: 62%"></progress>
+    <span>62%</span>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════ -->
+<main>
+  <div class="container">
+
+    <!-- ── SETTINGS PANEL using <details> & <summary> ── -->
+    <details class="settings-panel">
+      <summary>
+        <i class="bi bi-sliders"></i>
+        Editor Settings
+        <span class="chevron"><i class="bi bi-chevron-down"></i></span>
+      </summary>
+      <div class="settings-body">
+
+        <div class="setting-group">
+          <label for="font-size-range">Font Size</label>
+          <input type="range" id="font-size-range" min="12" max="28" value="18" step="1"
+                 title="Adjust font size" />
+          <span style="font-size:11px;color:var(--ink-soft);">12 – 28 px</span>
+        </div>
+
+        <div class="setting-group">
+          <label for="line-height-range">Line Spacing</label>
+          <input type="range" id="line-height-range" min="1" max="3" value="1.85" step="0.05"
+                 title="Adjust line height" />
+        </div>
+
+        <div class="setting-group">
+          <label for="bg-color">Background Color</label>
+          <input type="color" id="bg-color" value="#ffffff" title="Choose editor background" />
+        </div>
+
+        <div class="setting-group">
+          <label for="font-select">Font Family</label>
+          <select id="font-select" title="Choose editor font">
+            <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
+            <option value="'Syne', sans-serif">Syne</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Courier New', monospace">Courier New</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label for="lang-select">Spell-check Language</label>
+          <select id="lang-select" title="Language for spell-check">
+            <option value="en">English</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="es">Spanish</option>
+          </select>
+        </div>
+
+      </div>
+    </details>
+
+    <!-- ── EDITOR CARD ── -->
+    <div class="shell">
+      <article class="editor-card">
+
+        <!-- TOOLBAR -->
+        <nav class="toolbar" role="toolbar" aria-label="Text formatting toolbar">
+
+          <!-- Bold -->
+          <button class="btn-t" title="Bold (Ctrl+B)" onclick="document.execCommand('bold')">
+            <i class="bi bi-type-bold"></i>
+          </button>
+
+          <!-- Italic -->
+          <button class="btn-t" title="Italic (Ctrl+I)" onclick="document.execCommand('italic')">
+            <i class="bi bi-type-italic"></i>
+          </button>
+
+          <!-- Underline -->
+          <button class="btn-t" title="Underline (Ctrl+U)" onclick="document.execCommand('underline')">
+            <i class="bi bi-type-underline"></i>
+          </button>
+
+          <!-- Strikethrough -->
+          <button class="btn-t" title="Strikethrough" onclick="document.execCommand('strikeThrough')">
+            <i class="bi bi-type-strikethrough"></i>
+          </button>
+
+          <div class="t-div"></div>
+
+          <!-- Align Left -->
+          <button class="btn-t" title="Align Left" onclick="document.execCommand('justifyLeft')">
+            <i class="bi bi-text-left"></i>
+          </button>
+
+          <!-- Align Center -->
+          <button class="btn-t" title="Align Center" onclick="document.execCommand('justifyCenter')">
+            <i class="bi bi-text-center"></i>
+          </button>
+
+          <!-- Align Right -->
+          <button class="btn-t" title="Align Right" onclick="document.execCommand('justifyRight')">
+            <i class="bi bi-text-right"></i>
+          </button>
+
+          <!-- Justify -->
+          <button class="btn-t" title="Justify" onclick="document.execCommand('justifyFull')">
+            <i class="bi bi-justify"></i>
+          </button>
+
+          <div class="t-div"></div>
+
+          <!-- Ordered List -->
+          <button class="btn-t" title="Ordered List" onclick="document.execCommand('insertOrderedList')">
+            <i class="bi bi-list-ol"></i>
+          </button>
+
+          <!-- Unordered List -->
+          <button class="btn-t" title="Unordered List" onclick="document.execCommand('insertUnorderedList')">
+            <i class="bi bi-list-ul"></i>
+          </button>
+
+          <!-- Horizontal Rule -->
+          <button class="btn-t" title="Insert Divider" onclick="document.execCommand('insertHorizontalRule')">
+            <i class="bi bi-dash-lg"></i>
+          </button>
+
+          <div class="t-div"></div>
+
+          <!-- Open dialog button -->
+          <button class="btn-t" title="Insert Link / Note"
+            onclick="document.getElementById('insert-dialog').showModal()">
+            <i class="bi bi-link-45deg"></i>
+          </button>
+
+          <!-- Print -->
+          <button class="btn-t" title="Print document" onclick="window.print()">
+            <i class="bi bi-printer"></i>
+          </button>
+
+          <!-- Search with datalist -->
+          <div class="search-wrap">
+            <i class="bi bi-search" style="font-size:13px;color:var(--ink-soft);"></i>
+            <input type="search" list="quick-phrases" placeholder="Quick phrase…"
+                   title="Type or pick a phrase to insert" />
+            <datalist id="quick-phrases">
+              <option value="To Whom It May Concern,"></option>
+              <option value="Best regards,"></option>
+              <option value="Kind regards,"></option>
+              <option value="I am writing to inform you…"></option>
+              <option value="Please find attached…"></option>
+              <option value="Thank you for your consideration."></option>
+              <option value="Looking forward to your reply."></option>
+            </datalist>
+          </div>
+
+        </nav>
+
+        <!-- EDITOR CONTENT AREA with spellcheck & lang attributes -->
+        <section
+          class="editor-area"
+          id="editor"
+          contenteditable="true"
+          spellcheck="true"
+          lang="en"
+          role="textbox"
+          aria-multiline="true"
+          aria-label="Main writing area"
+          tabindex="0">
+        </section>
+
+        <!-- METER ROW — readability / quality indicators -->
+        <div class="meter-row">
+          <span class="meter-label">Readability</span>
+          <meter value="0.72" min="0" max="1" low="0.3" high="0.65" optimum="0.85"
+                 title="Readability score: Good"></meter>
+          <span>Good</span>
+
+          <div class="t-div" style="margin:0 8px;"></div>
+
+          <span class="meter-label">Tone</span>
+          <meter value="0.55" min="0" max="1" low="0.25" high="0.5" optimum="0.75"
+                 title="Tone balance: Neutral"></meter>
+          <span>Neutral</span>
+
+          <div class="t-div" style="margin:0 8px;"></div>
+
+          <span class="meter-label">Density</span>
+          <meter value="0.4" min="0" max="1" low="0.2" high="0.6" optimum="0.45"
+                 title="Content density: Balanced"></meter>
+          <span>Balanced</span>
+        </div>
+
+        <!-- STATUS BAR -->
+        <footer class="status-bar">
+          <span>
+            <span class="dot green"></span>
+            Editing — <abbr title="All changes are retained in this session only">session autosave</abbr> active
+          </span>
+          <span>
+            <abbr title="HTML5 spellcheck attribute enabled">Spellcheck</abbr> on &nbsp;·&nbsp;
+            <abbr title="contenteditable='true' — fully editable region">HTML5 Editor</abbr>
+          </span>
+          <span id="word-count" style="color:var(--gold);">0 words</span>
+        </footer>
+
+      </article>
+    </div>
+
+    <!-- ── BOTTOM INFO PANELS using <details> ── -->
+    <div class="bottom-details">
+
+      <details class="info-panel">
+        <summary>
+          <i class="bi bi-keyboard"></i>
+          Keyboard Shortcuts
+          <span class="chevron"><i class="bi bi-chevron-down"></i></span>
+        </summary>
+        <div class="info-panel-body">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr><td style="padding:4px 0;color:var(--ink);"><kbd style="background:var(--cream);border:1px solid rgba(0,0,0,0.12);border-radius:4px;padding:1px 6px;">Ctrl+B</kbd></td><td>Bold</td></tr>
+            <tr><td style="padding:4px 0;"><kbd style="background:var(--cream);border:1px solid rgba(0,0,0,0.12);border-radius:4px;padding:1px 6px;">Ctrl+I</kbd></td><td>Italic</td></tr>
+            <tr><td style="padding:4px 0;"><kbd style="background:var(--cream);border:1px solid rgba(0,0,0,0.12);border-radius:4px;padding:1px 6px;">Ctrl+U</kbd></td><td>Underline</td></tr>
+            <tr><td style="padding:4px 0;"><kbd style="background:var(--cream);border:1px solid rgba(0,0,0,0.12);border-radius:4px;padding:1px 6px;">Ctrl+P</kbd></td><td>Print</td></tr>
+            <tr><td style="padding:4px 0;"><kbd style="background:var(--cream);border:1px solid rgba(0,0,0,0.12);border-radius:4px;padding:1px 6px;">Ctrl+Z</kbd></td><td>Undo</td></tr>
+          </table>
+        </div>
+      </details>
+
+      <details class="info-panel">
+        <summary>
+          <i class="bi bi-info-circle"></i>
+          HTML5 Features Used
+          <span class="chevron"><i class="bi bi-chevron-down"></i></span>
+        </summary>
+        <div class="info-panel-body">
+          <ul style="padding-left:16px;display:flex;flex-direction:column;gap:5px;">
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">&lt;details&gt; / &lt;summary&gt;</code> — collapsible panels</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">&lt;dialog&gt;</code> — modal overlay</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">&lt;progress&gt;</code> — session bar</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">&lt;meter&gt;</code> — quality gauges</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">&lt;datalist&gt;</code> — phrase picker</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">&lt;abbr&gt;</code> — inline tooltips</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">&lt;fieldset&gt; / &lt;legend&gt;</code> — form grouping</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">contenteditable</code> — live editor</li>
+            <li><code style="font-size:11px;background:var(--cream);padding:1px 4px;border-radius:4px;">spellcheck / lang</code> — accessibility</li>
+          </ul>
+        </div>
+      </details>
+
+    </div>
+
+  </div>
+</main>
+
+<!-- ══════════════════════════════════════════════
+     <dialog> — Insert Link / Note Modal
+══════════════════════════════════════════════ -->
+<dialog id="insert-dialog" aria-labelledby="dialog-title" aria-modal="true">
+  <div class="dialog-header">
+    <h2 id="dialog-title">Insert Element</h2>
+    <button class="btn-t" style="color:rgba(255,255,255,0.6);"
+      onclick="document.getElementById('insert-dialog').close()"
+      title="Close dialog">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <div class="dialog-body">
+    <p>Choose what to insert into your document at the current cursor position.</p>
+
+    <fieldset>
+      <legend>Insert Type</legend>
+      <div class="radio-group">
+        <label><input type="radio" name="insert-type" value="link" checked /> Hyperlink</label>
+        <label><input type="radio" name="insert-type" value="note" /> Callout Note</label>
+        <label><input type="radio" name="insert-type" value="quote" /> Block Quote</label>
+      </div>
+    </fieldset>
+
+    <div class="dialog-field">
+      <label for="link-text">Display Text</label>
+      <input type="text" id="link-text" placeholder="e.g. Click here" />
+    </div>
+    <div class="dialog-field">
+      <label for="link-url">URL / Content</label>
+      <input type="text" id="link-url" placeholder="https://example.com" />
+    </div>
+    <div class="dialog-field" style="flex-direction:row;align-items:center;gap:10px;">
+      <input type="checkbox" id="open-new-tab" style="width:auto;" />
+      <label for="open-new-tab" style="font-size:13px;text-transform:none;letter-spacing:0;cursor:pointer;">
+        Open in new tab
+      </label>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn-ghost" onclick="document.getElementById('insert-dialog').close()">Cancel</button>
+    <button class="btn-primary" onclick="
+      var txt = document.getElementById('link-text').value || 'Link';
+      var url = document.getElementById('link-url').value || '#';
+      var newTab = document.getElementById('open-new-tab').checked;
+      var html = '<a href=\'' + url + '\'' + (newTab ? ' target=\'_blank\'' : '') + '>' + txt + '</a>';
+      document.getElementById('editor').focus();
+      document.execCommand('insertHTML', false, html);
+      document.getElementById('insert-dialog').close();
+    ">Insert</button>
+  </div>
+</dialog>
+<!-- Word count script -->
+<script>
+  const editor = document.getElementById('editor');
+  const wc = document.getElementById('word-count');
+  editor.addEventListener('input', () => {
+    const text = editor.innerText.trim();
+    const count = text ? text.split(/\s+/).length : 0;
+    wc.textContent = count + (count === 1 ? ' word' : ' words');
+  });
+</script>
+</body>
+</html>
